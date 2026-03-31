@@ -47,7 +47,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fault)
 
-include(FetchContent)
 FetchContent_Declare(
     wxwidgets
     GIT_REPOSITORY https://github.com/wxWidgets/wxWidgets
@@ -145,7 +144,7 @@ set(TREESHEETS_LIBS fault::fault wx::aui wx::adv wx::core wx::xml wx::net)
 if(ENABLE_LOBSTER)
     target_link_libraries(TreeSheets PRIVATE lobster-impl)
 endif(ENABLE_LOBSTER)
-target_link_libraries(TreeSheets PRIVATE wx::aui wx::adv wx::core wx::xml wx::net)
+target_link_libraries(TreeSheets PRIVATE ${TREESHEETS_LIBS})
 
 ### Installation
 
