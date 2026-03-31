@@ -42,7 +42,7 @@ class CustomStackWalker : public StackWalker {
 // "SetUnhandledExceptionFilter" and VC8
 // http://blog.kalmbachnet.de/?postid=75
 // and
-// Unhandled exceptions in VC8 and above… for x86 and x64
+// Unhandled exceptions in VC8 and above� for x86 and x64
 // http://blog.kalmbach-software.de/2008/04/02/unhandled-exceptions-in-vc8-and-above-for-x86-and-x64/
 // Even better:
 // http://blog.kalmbach-software.de/2013/05/23/improvedpreventsetunhandledexceptionfilter/

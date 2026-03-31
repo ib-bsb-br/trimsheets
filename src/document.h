@@ -422,11 +422,12 @@ struct Document {
         return;
     }
 
-    void ZoomSetDrawPath(int dir, bool fromroot = true) {
-        int len = max(0, (fromroot ? 0 : drawpath.size()) + dir);
-        if (!len && drawpath.empty()) return;
+    bool ZoomSetDrawPath(int dir, bool fromroot = true) {
+        int oldlen = drawpath.size();
+        int targetlen = max(0, (fromroot ? 0 : oldlen) + dir);
+        if (!targetlen && drawpath.empty()) return false;
         if (dir > 0) {
-            if (!selected.grid) return;
+            if (!selected.grid) return false;
             auto c = selected.GetCell();
             CreatePath(c && c->grid ? c : selected.grid->cell, drawpath);
         } else if (dir < 0) {
@@ -434,12 +435,13 @@ struct Document {
             if (drawroot->grid && drawroot->grid->folded)
                 SetSelect(drawroot->parent->grid->FindCell(drawroot));
         }
-        if (auto diff = static_cast<int>(drawpath.size()) - max(0, len); diff > 0)
-            drawpath.erase(drawpath.begin(), drawpath.begin() + diff);
+        int tail = static_cast<int>(drawpath.size()) - targetlen;
+        if (tail > 0) drawpath.erase(drawpath.begin(), drawpath.begin() + tail);
+        return drawpath.size() != oldlen;
     }
 
     void Zoom(int dir, bool fromroot = false) {
-        ZoomSetDrawPath(dir, fromroot);
+        if (!ZoomSetDrawPath(dir, fromroot)) return;
         auto drawroot = WalkPath(drawpath);
         if (selected.GetCell() == drawroot && drawroot->grid) {
             // We can't have the drawroot selected, so we must move the selection to the children.
@@ -585,12 +587,16 @@ struct Document {
         Render(dc);
         DrawSelect(dc, selected);
         if (paintscrolltoselection) {
-            canvas->CallAfter([this](){
+            #ifdef __WXGTK__
                 ScrollIfSelectionOutOfView(selected);
-                #ifdef __WXMAC__
-                    canvas->Refresh();
-                #endif
-            });
+            #else
+                canvas->CallAfter([this](){
+                    ScrollIfSelectionOutOfView(selected);
+                    #ifdef __WXMAC__
+                        canvas->Refresh();
+                    #endif
+                });
+            #endif
             paintscrolltoselection = false;
         }
         if (scaledviewingmode) { dc.SetUserScale(1, 1); }
@@ -733,22 +739,27 @@ struct Document {
                 case A_EXPHTMLTI:
                 case A_EXPHTMLTE:
                 case A_EXPHTMLB:
-                case A_EXPHTMLO:
-                    dos.WriteString(
-                        L"<!DOCTYPE html>\n"
-                        L"<html>\n<head>\n<style>\n"
-                        L"body { font-family: sans-serif; }\n"
-                        L"table, th, td { border: 1px solid #A0A0A0; border-collapse: collapse;"
-                        L" padding: 3px; vertical-align: top; }\n"
-                        L"li { }\n</style>\n"
-                        L"<title>export of TreeSheets file ");
-                    dos.WriteString(this->filename);
-                    dos.WriteString(
-                        L"</title>\n<meta charset=\"UTF-8\" />\n"
-                        L"</head>\n<body>\n");
-                    dos.WriteString(content);
-                    dos.WriteString(L"</body>\n</html>\n");
+                case A_EXPHTMLO: {
+                    wxString output;
+                    output
+                        << L"<!DOCTYPE html>\n"
+                        << L"<html>\n<head>\n<style>\n"
+                        << L"body { font-family: '" << sys->defaultfont << L"', sans-serif; }\n"
+                        << L"table, th, td { border: 1px solid #A0A0A0; border-collapse: collapse;"
+                        << L" padding: 3px; vertical-align: top; }\n"
+                        << L"@media (prefers-color-scheme: dark) {\n"
+                        << L"  html { filter: invert(1); }\n"
+                        << L"  img { filter: invert(1); }\n"
+                        << L"}\n"
+                        << L"li { }\n</style>\n"
+                        << L"<title>export of TreeSheets file " << this->filename
+                        << L"</title>\n<meta charset=\"UTF-8\" />\n"
+                        << L"</head>\n<body style=\""
+                        << wxString::Format(L"background-color: #%06X;", SwapColor(root->cellcolor))
+                        << L"\">" << content << L"</body>\n</html>\n";
+                    dos.WriteString(output);
                     break;
+                }
                 case A_EXPCSV:
                 case A_EXPTEXT: dos.WriteString(content); break;
             }
