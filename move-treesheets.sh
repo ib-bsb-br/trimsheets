@@ -428,10 +428,14 @@ else
   die "/etc/os-release not found; cannot determine operating system"
 fi
 
-OS_ID="${ID,,}"
-OS_ID_LIKE="${ID_LIKE,,}"
+OS_ID="${ID:-}"
+OS_ID="${OS_ID,,}"
+OS_ID_LIKE="${ID_LIKE:-}"
+OS_ID_LIKE="${OS_ID_LIKE,,}"
 OS_VERSION_ID="${VERSION_ID:-}"
 OS_CODENAME="${VERSION_CODENAME:-}"
+
+[[ -n "${OS_ID}" ]] || die "/etc/os-release did not define ID"
 
 LIST_CMD=()
 REMOVE_CMD=()
